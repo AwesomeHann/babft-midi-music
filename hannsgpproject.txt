@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hann's Project</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
+            max-width: 600px;
+            margin: auto;
+        }
+        .logo {
+            width: 200px;
+            margin-bottom: 20px;
+        }
+        pre {
+            text-align: left;
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .note-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        .note-container span {
+            display: inline-block;
+            width: 300px; /* Approximate 4-inch spacing */
+            text-align: left;
+        }
+        .track-header {
+            font-weight: bold;
+            margin-top: 15px;
+            text-align: left;
+        }
+    </style>
+    <script>
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            console.log("File uploaded:", file.name);
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                console.log("File read as ArrayBuffer:", e.target.result);
+                parseMIDI(e.target.result);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        async function parseMIDI(arrayBuffer) {
+            try {
+                const midi = new Midi(arrayBuffer);
+                console.log("Full MIDI Data:", midi);
+                
+                if (!midi || !midi.tracks || midi.tracks.length === 0) {
+                    document.getElementById("output").innerText = "No MIDI tracks found.";
+                    return;
+                }
+                
+                let outputHTML = "";
+                let prevTime = 0;
+                
+                midi.tracks.forEach((track, index) => {
+                    outputHTML += `<div class='track-header'>Track ${index + 1}</div>`;
+                    if (!track.notes || track.notes.length === 0) {
+                        outputHTML += `<p>No notes in track ${index + 1}.</p>`;
+                        return;
+                    }
+                    
+                    track.notes.forEach(note => {
+                        let restValue = (note.time - prevTime);
+                        let value1 = (note.duration + restValue).toFixed(2);
+                        let noteName = Tone.Frequency(note.midi, "midi").toNote();
+                        
+                        outputHTML += `<div class='note-container'>
+                            <span>${value1}</span>
+                            <span>${noteName}</span>
+                        </div>`;
+                        prevTime = note.time;
+                    });
+                });
+                
+                document.getElementById("output").innerHTML = outputHTML || "No notes processed.";
+            } catch (error) {
+                document.getElementById("output").innerText = "Error processing MIDI file: " + error.message;
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <img src="https://upload.wikimedia.org/wikipedia/en/7/78/Build_A_Boat_For_Treasure_Logo.png" alt="Build a Boat Logo" class="logo">
+        <h1>Hann's Project</h1>
+        <input type="file" accept=".mid" onchange="handleFileUpload(event)">
+        <div id="output"></div>
+    </div>
+</body>
+</html>
